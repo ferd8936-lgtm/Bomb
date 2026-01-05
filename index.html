@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>마을 수호대! 수학 방어 작전</title>
+    <style>
+        @font-face {
+            font-family: 'NexonGothic';
+            src: url('./NexonLv2Gothic_2.ttf') format('truetype');
+            font-weight: normal; font-style: normal;
+        }
+        * { font-family: 'NexonGothic', sans-serif !important; box-sizing: border-box; }
+        body { 
+            margin: 0; overflow: hidden; background: #000; 
+            user-select: none; touch-action: none;
+            width: 100%; height: 100%;
+        }
+
+        #game-container { 
+            position: relative; width: 100vw; height: 100vh; max-width: 600px; margin: 0 auto;
+            background: url('sky.png') no-repeat center center / cover; overflow: hidden; 
+        }
+
+        .overlay {
+            position: absolute; width: 100%; height: 100%; z-index: 2000;
+            background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px;
+        }
+        
+        .animated-rabbit {
+            position: relative; width: 100px; height: 120px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            animation: bounce-rabbit 0.8s infinite alternate ease-in-out;
+            margin-bottom: 25px;
+        }
+        .helmet-overlay { position: absolute; top: -10px; font-size: 77px; z-index: 3; }
+        .rabbit-face { position: absolute; top: 25px; font-size: 88px; z-index: 1; clip-path: inset(25% 0 0 0); }
+
+        @keyframes bounce-rabbit { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+
+        .instruction { background: white; color: #333; padding: 25px; border-radius: 20px; margin: 25px 0; line-height: 1.7; font-size: 19px; text-align: center; width: 90%; }
+        .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; }
+
+        #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
+        #status-bar { position: absolute; top: 15px; left: 15px; color: white; font-weight: bold; z-index: 1000; background: rgba(0,0,0,0.5); padding: 7px 20px; border-radius: 25px; font-size: 17px; }
+
+        /* 집 위 말풍선 - 집집마다 돌아가며 나타나도록 설정 */
+        .speech-bubble {
+            position: absolute; background: white; color: #333;
+            padding: 10px 20px; border-radius: 25px; font-size: 20px; font-weight: 900;
+            white-space: nowrap; border: 4px solid #2e7d32; display: none; z-index: 160;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            transition: opacity 0.2s;
+        }
+        .speech-bubble::after {
+            content: ''; position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+            border-width: 14px 10px 0 10px; border-style: solid; border-color: #2e7d32 transparent transparent transparent;
+        }
+
+        .bomb {
+            position: absolute; width: 100px; height: 110px; 
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120"><defs><radialGradient id="grad" cx="40%" cy="40%" r="50%"><stop offset="0%" style="stop-color:%23555;stop-opacity:1"/><stop offset="100%" style="stop-color:%23000;stop-opacity:1"/></radialGradient></defs><path d="M45 15 L55 15 L55 25 L45 25 Z" fill="%23333"/><path d="M50 5 Q55 10 50 15" stroke="%23aaa" stroke-width="2" fill="none"/><circle cx="50" cy="5" r="3" fill="orange"><animate attributeName="r" values="3;5;3" dur="0.2s" repeatCount="indefinite"/></circle><circle cx="50" cy="65" r="40" fill="url(%23grad)"/><circle cx="35" cy="50" r="10" fill="white" fill-opacity="0.2"/></svg>') no-repeat center center;
+            background-size: contain; display: flex; align-items: center; justify-content: center; z-index: 500; cursor: pointer;
+        }
+        .bomb-text { color: white; font-weight: bold; font-size: 18px; text-align: center; pointer-events: none; margin-top: 25px; text-shadow: 2px 2px 2px #000; line-height: 1.2; width: 85%; }
+
+        .pop-out { animation: pop-out-ani 0.4s ease-out forwards; }
+        @keyframes pop-out-ani { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); } 100% { transform: scale(0); opacity: 0; } }
+
+        .fire-explosion {
+            position: absolute; width: 350px; height: 350px;
+            background: radial-gradient(circle, #fff 5%, #ffeb3b 25%, #f44336 50%, transparent 75%);
+            border-radius: 50%; animation: explode-ani 0.9s ease-out forwards;
+            z-index: 1500; pointer-events: none; transform: translate(-50%, -50%);
+        }
+        @keyframes explode-ani { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; } }
+        .shake-active { animation: shake-screen 0.1s infinite; }
+        @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(8px, -8px); } }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="status-bar" style="display:none;">단계: <span id="cur-step">1</span> | 제거: <span id="cur-score">0</span>/15</div>
+
+    <div id="intro-screen" class="overlay">
+        <div class="animated-rabbit">
+            <div class="helmet-overlay">🪖</div>
+            <div class="rabbit-face">🐰</div>
+        </div>
+        <div class="instruction">
+            <strong>작전 개시! 마을을 지켜라!</strong><br><br>
+            1. <b>정답</b> 폭탄을 15개 제거할 때마다 소원권을 획득합니다.<br>
+            2. 정답을 놓치거나 <b>오답</b>을 누르면 마을이 폭발합니다!
+        </div>
+        <button class="btn" onclick="startGame()">작전 시작</button>
+    </div>
+
+    <div id="game-area" style="display:none;">
+        <div id="village-bubble" class="speech-bubble"></div>
+    </div>
+
+    <div id="stats-screen" class="overlay" style="display:none;">
+        <div class="result-pop" style="background:white; padding:30px; border-radius:30px; text-align:center; color:#333; width:85%;">
+            <h1 id="stats-title" style="color:#4caf50; font-size: 30px;"></h1>
+            <p id="stats-content" style="font-size: 19px; line-height: 1.6;"></p>
+            <div id="wish-ticket" style="color: #d81b60; font-size: 24px; font-weight: bold; margin: 15px 0;">🎟️ <span id="step-label"></span> 소원권 획득! 🎟️</div>
+            <button id="next-btn" class="btn" onclick="nextLevel()">계속하기</button>
+            <button id="restart-btn" class="btn" onclick="location.reload()" style="display:none;">다시 시작</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentLevel = 1;
+    let score = 0;
+    const goal = 15;
+    let activeBombs = [];
+    let isGameOver = false;
+    let baseSpeed = 0.35;
+    const cheers = ["화이팅!", "잘한다!", "마을을 구했다!", "우와!", "최고야!", "힘내!", "대단해!", "좋아 좋아!"];
+
+    function startGame() {
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('game-area').style.display = 'block';
+        document.getElementById('status-bar').style.display = 'block';
+        updateStatus();
+        showCheer(true); 
+        spawnLoop();
+    }
+
+    // 집집마다 돌아가며 랜덤 위치에 말풍선 표시
+    function showCheer(isStart = false) {
+        const bubble = document.getElementById('village-bubble');
+        
+        if (isStart) {
+            bubble.innerText = "마을을 지켜줘!";
+        } else {
+            bubble.innerText = cheers[Math.floor(Math.random() * cheers.length)];
+        }
+        
+        const containerWidth = document.getElementById('game-container').offsetWidth;
+        const containerHeight = document.getElementById('game-container').offsetHeight;
+        
+        // 1. 가로 위치: 집들이 있는 왼쪽에서 오른쪽 사이 (10% ~ 90% 영역)
+        const randomX = (containerWidth * 0.1) + Math.random() * (containerWidth * 0.8 - 100);
+        
+        // 2. 세로 위치: 집의 지붕 근처 (화면 하단 15% ~ 25% 지점 랜덤)
+        const randomY = containerHeight - (containerHeight * (0.15 + Math.random() * 0.1));
+        
+        bubble.style.left = randomX + 'px';
+        bubble.style.top = (randomY - 60) + 'px'; // 말풍선 높이만큼 보정
+        bubble.style.display = 'block';
+        bubble.style.opacity = '1';
+        
+        setTimeout(() => { 
+            bubble.style.opacity = '0';
+            setTimeout(() => { bubble.style.display = 'none'; }, 300);
+        }, 1800);
+    }
+
+    function updateStatus() {
+        document.getElementById('cur-step').innerText = currentLevel;
+        document.getElementById('cur-score').innerText = score;
+    }
+
+    function spawnLoop() {
+        if (isGameOver || score >= goal) return;
+        let canSpawn = activeBombs.length === 0 || activeBombs[activeBombs.length - 1].y > 80;
+        if (canSpawn && activeBombs.length < 4) createBomb();
+        setTimeout(spawnLoop, 300);
+    }
+
+    function createBomb() {
+        if (isGameOver || score >= goal) return;
+        const area = document.getElementById('game-area');
+        const bomb = document.createElement('div');
+        bomb.className = 'bomb';
+        
+        let quiz;
+        if (currentLevel <= 2) quiz = makeQuizData("plus");
+        else quiz = makeQuizData("mix");
+
+        const isCorrect = Math.random() > 0.4;
+        let displayAns = isCorrect ? quiz.ans : (quiz.ans + (Math.floor(Math.random() * 9) + 1));
+        
+        bomb.innerHTML = `<div class="bomb-text">${quiz.q}<br>= ${displayAns}</div>`;
+        const containerWidth = document.getElementById('game-container').offsetWidth;
+        
+        let startX;
+        let attempts = 0;
+        do {
+            startX = 20 + Math.random() * (containerWidth - 110);
+            attempts++;
+        } while (activeBombs.some(b => Math.abs(startX - b.x) < 100) && attempts < 10);
+
+        bomb.style.left = startX + 'px';
+        bomb.style.top = '-120px';
+        area.appendChild(bomb);
+
+        const bombObj = { element: bomb, x: startX, y: -120 };
+        activeBombs.push(bombObj);
+
+        let finalSpeed = (baseSpeed + (Math.random() * 0.1)) * (currentLevel % 2 === 0 ? 1.2 : 1.0);
+        
+        const moveInterval = setInterval(() => {
+            if (isGameOver) { clearInterval(moveInterval); bomb.remove(); return; }
+            bombObj.y += finalSpeed;
+            bomb.style.top = bombObj.y + 'px';
+
+            if (bombObj.y > window.innerHeight - 100) { 
+                clearInterval(moveInterval);
+                activeBombs = activeBombs.filter(b => b !== bombObj);
+                if (isCorrect) triggerBigExplosion(startX + 50, window.innerHeight - 60, "폭탄을 놓쳤어요!");
+                else bomb.remove();
+            }
+        }, 16);
+
+        const handleHit = (e) => {
+            e.preventDefault();
+            if (isGameOver) return;
+            if (isCorrect) {
+                if (!bomb.classList.contains('pop-out')) {
+                    bomb.classList.add('pop-out');
+                    score++;
+                    updateStatus();
+                    showCheer(); 
+                    setTimeout(() => {
+                        bomb.remove();
+                        clearInterval(moveInterval);
+                        activeBombs = activeBombs.filter(b => b !== bombObj);
+                        if (score >= goal) showWinPopup();
+                    }, 400);
+                }
+            } else {
+                triggerBigExplosion(startX + 50, bombObj.y + 50, "오답을 눌렀어요!");
+            }
+        };
+        bomb.addEventListener('touchstart', handleHit);
+        bomb.addEventListener('mousedown', handleHit);
+    }
+
+    function triggerBigExplosion(x, y, reason) {
+        isGameOver = true;
+        document.getElementById('game-container').classList.add('shake-active');
+        const fire = document.createElement('div');
+        fire.className = 'fire-explosion';
+        fire.style.left = x + 'px'; fire.style.top = y + 'px';
+        document.getElementById('game-area').appendChild(fire);
+        setTimeout(() => {
+            document.getElementById('game-container').classList.remove('shake-active');
+            showLosePopup(reason);
+        }, 1200);
+    }
+
+    function makeQuizData(type) {
+        let a, b;
+        if (type === "plus" || (type === "mix" && Math.random() > 0.5)) {
+            do { a = Math.floor(Math.random() * 50) + 10; b = Math.floor(Math.random() * 39) + 10; } while (a + b >= 100);
+            return { q: `${a}+${b}`, ans: a + b };
+        } else {
+            a = Math.floor(Math.random() * 80) + 20; b = Math.floor(Math.random() * (a - 10)) + 10;
+            return { q: `${a}-${b}`, ans: a - b };
+        }
+    }
+
+    function showWinPopup() {
+        const screen = document.getElementById('stats-screen');
+        document.getElementById('stats-title').innerText = "임무 완수! 🎉";
+        document.getElementById('stats-content').innerText = `${currentLevel}단계를 완수했습니다! 우리 마을을 지켜냈어요!`;
+        document.getElementById('step-label').innerText = `${currentLevel}단계`;
+        document.getElementById('wish-ticket').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'inline-block';
+        document.getElementById('restart-btn').style.display = 'none';
+        screen.style.display = 'flex';
+        activeBombs.forEach(b => b.element.remove());
+        activeBombs = [];
+    }
+
+    function nextLevel() {
+        currentLevel++; score = 0;
+        document.getElementById('stats-screen').style.display = 'none';
+        updateStatus(); spawnLoop();
+    }
+
+    function showLosePopup(reason) {
+        const screen = document.getElementById('stats-screen');
+        document.getElementById('stats-title').innerText = "작전 실패... 😭";
+        document.getElementById('stats-content').innerText = reason + "\n마을이 파괴되었습니다.";
+        document.getElementById('wish-ticket').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('restart-btn').style.display = 'inline-block';
+        screen.style.display = 'flex';
+    }
+</script>
+
+</body>
+</html>
