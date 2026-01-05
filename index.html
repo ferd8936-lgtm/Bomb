@@ -38,7 +38,6 @@
 
         @keyframes bounce-rabbit { from { transform: translateY(0); } to { transform: translateY(-15px); } }
 
-        /* 1. 안내 문구 모바일 최적화 (단어 끊김 방지) */
         .instruction { 
             background: white; color: #333; padding: 25px; border-radius: 20px; 
             margin: 25px 0; line-height: 1.7; font-size: 19px; text-align: center; width: 90%;
@@ -78,7 +77,7 @@
         }
         @keyframes explode-ani { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; } }
         .shake-active { animation: shake-screen 0.1s infinite; }
-        @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(8px, -8px); } }
+        @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(10px, -10px); } }
     </style>
 </head>
 <body>
@@ -123,7 +122,53 @@
     let baseSpeed = 0.35;
     const cheers = ["화이팅!", "잘한다!", "마을을 구했다!", "우와!", "최고야!", "힘내!", "대단해!", "좋아 좋아!"];
 
+    // 배경음악용 오디오 컨텍스트 및 변수
+    let audioCtx;
+    let bgmInterval = null;
+
+    function playBGM() {
+        // 브라우저 정책 대응: 상호작용 후 AudioContext 생성/재개
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // 오디오가 일시 중지 상태라면 재개
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        if (bgmInterval) return; // 이미 루프가 돌고 있으면 중복 실행 방지
+
+        function createNote(freq, startTime, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0.08, startTime); // 소리 크기 조절
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
+        // 긴장감 있는 루프 시작
+        bgmInterval = setInterval(() => {
+            if (isGameOver) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+                return;
+            }
+            // 엇박자로 둥둥거리는 긴장감 있는 베이스음
+            createNote(110, audioCtx.currentTime, 0.5); // A2
+            setTimeout(() => {
+                if (!isGameOver) createNote(116.5, audioCtx.currentTime, 0.5); // A#2
+            }, 250);
+        }, 500);
+    }
+
     function startGame() {
+        playBGM(); // 작전 시작 시 음악 재생 호출
         document.getElementById('intro-screen').style.display = 'none';
         document.getElementById('game-area').style.display = 'block';
         document.getElementById('status-bar').style.display = 'block';
@@ -261,7 +306,6 @@
     function showWinPopup() {
         const screen = document.getElementById('stats-screen');
         document.getElementById('stats-title').innerText = "임무 완수! 🎉";
-        // 2. 줄바꿈을 위해 <br><br> 추가
         document.getElementById('stats-content').innerHTML = `${currentLevel}단계를 완수했습니다!<br><br>우리 마을을 지켜냈어요!`;
         document.getElementById('step-label').innerText = `${currentLevel}단계`;
         document.getElementById('wish-ticket').style.display = 'block';
