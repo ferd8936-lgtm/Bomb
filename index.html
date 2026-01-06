@@ -77,41 +77,51 @@
         .shake-active { animation: shake-screen 0.1s infinite; }
         @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(8px, -8px); } }
 
-        /* [수정사항 1] 소원권 디자인 최적화 및 레이아웃 고정 */
-        #wish-ticket {
-            display: none;
-            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-            color: #fff;
-            padding: 15px 10px;
-            border-radius: 20px;
-            border: 4px dashed #fff;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-            margin: 15px auto;
-            position: relative;
-            animation: shine-wish 1.5s infinite;
-            width: 100%;
-            max-width: 280px;
-        }
-        #wish-ticket span {
-            display: block;
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            white-space: nowrap; /* 가로 줄 밀림 방지 */
-        }
-        @keyframes shine-wish {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        /* [수정 1] 새로운 소원권 팝업 디자인 */
+        .result-pop {
+            background: #fff; padding: 30px 20px; border-radius: 40px; text-align: center; 
+            color: #333; width: 90%; box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border: 8px solid #FFD700; position: relative;
+            animation: pop-bounce 0.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
         }
 
-        .result-pop {
-            background: white; padding: 30px; border-radius: 30px; text-align: center; 
-            color: #333; width: 85%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            animation: slide-up 0.5s ease-out;
+        @keyframes pop-bounce {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes slide-up { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        #stats-title { font-size: 32px; color: #FF4081; margin-bottom: 5px; font-weight: 900; text-shadow: 1px 1px 0px #eee; }
+        #stats-content { font-size: 19px; line-height: 1.5; margin-bottom: 20px; color: #555; }
+
+        #wish-ticket {
+            display: none;
+            background: linear-gradient(135deg, #FF69B4 0%, #FF1493 100%);
+            color: #fff; padding: 25px 15px; border-radius: 25px;
+            border: 4px dashed #fff; box-shadow: 0 0 20px rgba(255, 20, 147, 0.4);
+            margin: 15px auto; width: 95%; max-width: 300px;
+            animation: shine-wish 1.5s infinite ease-in-out;
+            position: relative;
+        }
+
+        @keyframes shine-wish {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 30px rgba(255, 20, 147, 0.6); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        .ticket-text-top { display: block; font-size: 24px; font-weight: 900; margin-bottom: 5px; }
+        .ticket-text-bottom { display: block; font-size: 28px; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+
+        .popup-char { width: 90px; height: 90px; margin: 15px auto; background: url('abcd.png') no-repeat center/contain; animation: tada 2s infinite; }
+        
+        @keyframes tada {
+            0% { transform: scale(1); }
+            10%, 20% { transform: scale(0.9) rotate(-3deg); }
+            30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+            40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
     </style>
 </head>
 <body>
@@ -135,17 +145,18 @@
 
     <div id="stats-screen" class="overlay" style="display:none;">
         <div class="result-pop">
-            <h1 id="stats-title" style="color:#4caf50; font-size: 30px; margin-top:0;"></h1>
-            <p id="stats-content" style="font-size: 18px; line-height: 1.6; word-break: keep-all; font-weight: bold;"></p>
+            <h1 id="stats-title">임무 완수! 🎉</h1>
+            <p id="stats-content">우리 마을을 성공적으로 지켜냈어요!</p>
             
             <div id="wish-ticket">
-                <span>⭐ 축하해! ⭐</span>
-                <span>🎟️ 소원권 획득! 🎟️</span>
+                <span class="ticket-text-top">⭐ 축하해! ⭐</span>
+                <span class="ticket-text-bottom">🎟️ 소원권 획득! 🎟️</span>
             </div>
 
-            <div style="width: 80px; height: 80px; margin: 10px auto; background: url('abcd.png') no-repeat center/contain;"></div>
+            <div class="popup-char"></div>
+            
             <div style="display:flex; gap:10px; justify-content: center; margin-top: 15px;">
-                <button id="restart-btn" class="btn" onclick="handleRestart()" style="background:#ffa726;">다시 도전</button>
+                <button id="restart-btn" class="btn" onclick="handleRestart()" style="background:#FF9800; border-bottom: 5px solid #E65100;">다음 단계 도전</button>
             </div>
         </div>
     </div>
@@ -344,11 +355,11 @@
         const restartBtn = document.getElementById('restart-btn');
         
         document.getElementById('stats-title').innerText = "임무 완수! 🎉";
-        document.getElementById('stats-content').innerHTML = `축하합니다!<br>우리 마을을 성공적으로 지켜냈어요!`;
+        document.getElementById('stats-content').innerHTML = `우리 마을을 성공적으로 지켜냈어요!`;
         document.getElementById('wish-ticket').style.display = 'block';
         
         restartBtn.innerText = "다음 단계 도전";
-        restartBtn.style.background = "#4caf50";
+        restartBtn.style.background = "#FF9800";
         
         screen.style.display = 'flex';
         activeBombs.forEach(b => b.element.remove());
