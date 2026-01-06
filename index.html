@@ -27,21 +27,21 @@
             background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px;
         }
         
-        /* 2. 캐릭터 abcd.png 반영 */
-        .char-abcd {
+        .animated-char {
             width: 120px; height: auto;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+            animation: bounce-rabbit 0.8s infinite alternate ease-in-out;
         }
 
-        /* 3. 모바일 안내 멘트 밀림 및 버튼 짤림 해결 */
+        @keyframes bounce-rabbit { from { transform: translateY(0); } to { transform: translateY(-20px); } }
+
         .instruction { 
-            background: white; color: #333; padding: 20px; border-radius: 20px; 
-            margin: 15px 0; line-height: 1.6; font-size: 18px; text-align: center; width: 90%;
-            word-break: keep-all; 
-            max-height: 40vh; overflow-y: auto; /* 내용이 길면 내부 스크롤 */
+            background: white; color: #333; padding: 25px; border-radius: 20px; 
+            margin: 25px 0; line-height: 1.7; font-size: 19px; text-align: center; width: 90%;
+            word-break: keep-all; max-height: 35vh; overflow-y: auto;
         }
-        .btn { padding: 12px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+        .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; }
 
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
         #status-bar { position: absolute; top: 15px; left: 15px; color: white; font-weight: bold; z-index: 1000; background: rgba(0,0,0,0.5); padding: 7px 20px; border-radius: 25px; font-size: 17px; }
@@ -77,18 +77,38 @@
         .shake-active { animation: shake-screen 0.1s infinite; }
         @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(8px, -8px); } }
 
-        /* 1. 소원권 UI 반영 */
+        /* [수정사항 2] 업그레이드된 소원권 디자인 적용 */
         #wish-ticket {
-            display: none; 
-            color: #d81b60; 
-            font-size: 20px; 
-            font-weight: bold; 
+            display: none;
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            color: #fff;
+            padding: 15px;
+            border-radius: 20px;
+            border: 4px dashed #fff;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
             margin: 15px 0;
-            padding: 10px;
-            border: 2px dashed #ff80ab;
-            border-radius: 10px;
-            background: #fff0f5;
+            position: relative;
+            animation: shine-wish 1.5s infinite;
         }
+        #wish-ticket span {
+            display: block;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        @keyframes shine-wish {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .result-pop {
+            background: white; padding: 30px; border-radius: 30px; text-align: center; 
+            color: #333; width: 85%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: slide-up 0.5s ease-out;
+        }
+        @keyframes slide-up { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -97,7 +117,7 @@
     <div id="status-bar" style="display:none;">단계: <span id="cur-step">1</span> | 제거: <span id="cur-score">0</span>/15</div>
 
     <div id="intro-screen" class="overlay">
-        <img src="abcd.png" class="char-abcd" alt="character">
+        <img src="abcd.png" class="animated-char" alt="character">
         <div class="instruction">
             <strong>작전 개시! 마을을 지켜라!</strong><br><br>
             1. <b>정답</b> 폭탄을 15개 제거할 때마다<br>소원권을 획득할 수 있습니다.<br>
@@ -111,14 +131,18 @@
     </div>
 
     <div id="stats-screen" class="overlay" style="display:none;">
-        <div class="result-pop" style="background:white; padding:30px; border-radius:30px; text-align:center; color:#333; width:85%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div class="result-pop">
             <h1 id="stats-title" style="color:#4caf50; font-size: 30px; margin-top:0;"></h1>
-            <p id="stats-content" style="font-size: 19px; line-height: 1.8; word-break: keep-all;"></p>
-            <div id="wish-ticket">🎟️ <span id="step-label"></span> 소원권 획득! 🎟️</div>
-            <div style="font-size: 50px; margin: 10px;">🐰</div>
-            <div style="display:flex; gap:10px; justify-content: center;">
-                <button id="next-btn" class="btn" onclick="nextLevel()">계속하기</button>
-                <button id="restart-btn" class="btn" onclick="location.reload()" style="display:none; background:#ffa726;">다시 시작</button>
+            <p id="stats-content" style="font-size: 18px; line-height: 1.6; word-break: keep-all; font-weight: bold;"></p>
+            
+            <div id="wish-ticket">
+                <span>⭐ 축하해! ⭐</span>
+                <span>🎟️ <span id="step-label"></span> 소원권 획득! 🎟️</span>
+            </div>
+
+            <div style="width: 80px; height: 80px; margin: 10px auto; background: url('abcd.png') no-repeat center/contain;"></div>
+            <div style="display:flex; gap:10px; justify-content: center; margin-top: 15px;">
+                <button id="restart-btn" class="btn" onclick="handleRestart()" style="background:#ffa726;">다시 도전</button>
             </div>
         </div>
     </div>
@@ -137,12 +161,8 @@
     let bgmInterval = null;
 
     function playBGM() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         if (bgmInterval) return;
 
         function createNote(freq, startTime, duration) {
@@ -152,28 +172,24 @@
             osc.frequency.setValueAtTime(freq, startTime);
             gain.gain.setValueAtTime(0.3, startTime); 
             gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(startTime);
-            osc.stop(startTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(startTime); osc.stop(startTime + duration);
         }
 
         bgmInterval = setInterval(() => {
-            if (isGameOver) {
-                clearInterval(bgmInterval);
-                bgmInterval = null;
-                return;
-            }
+            if (isGameOver) { clearInterval(bgmInterval); bgmInterval = null; return; }
             createNote(82.41, audioCtx.currentTime, 0.6); 
-            setTimeout(() => {
-                if (!isGameOver) createNote(87.31, audioCtx.currentTime, 0.6); 
-            }, 250);
+            setTimeout(() => { if (!isGameOver) createNote(87.31, audioCtx.currentTime, 0.6); }, 250);
         }, 500);
     }
 
     function startGame() {
+        isGameOver = false;
+        score = 0;
+        activeBombs = [];
         playBGM();
         document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('stats-screen').style.display = 'none';
         document.getElementById('game-area').style.display = 'block';
         document.getElementById('status-bar').style.display = 'block';
         updateStatus();
@@ -209,9 +225,9 @@
 
     function spawnLoop() {
         if (isGameOver || score >= goal) return;
-        let canSpawn = activeBombs.length === 0 || activeBombs[activeBombs.length - 1].y > 80;
+        let canSpawn = activeBombs.length === 0 || activeBombs[activeBombs.length - 1].y > 100;
         if (canSpawn && activeBombs.length < 4) createBomb();
-        setTimeout(spawnLoop, 300);
+        setTimeout(spawnLoop, 350);
     }
 
     function createBomb() {
@@ -221,7 +237,7 @@
         bomb.className = 'bomb';
         
         let quiz;
-        if (currentLevel <= 2) quiz = makeQuizData("plus");
+        if (currentLevel === 1) quiz = makeQuizData("plus");
         else quiz = makeQuizData("mix");
 
         const isCorrect = Math.random() > 0.4;
@@ -229,6 +245,7 @@
         
         bomb.innerHTML = `<div class="bomb-text">${quiz.q}<br>= ${displayAns}</div>`;
         const containerWidth = document.getElementById('game-container').offsetWidth;
+        const containerHeight = document.getElementById('game-container').offsetHeight;
         
         let startX;
         let attempts = 0;
@@ -244,26 +261,37 @@
         const bombObj = { element: bomb, x: startX, y: -120 };
         activeBombs.push(bombObj);
 
-        // 4. 폭탄 낙하 속도 수정 (1단계 +10%, 2~4단계 +30%)
-        let speedFactor = (currentLevel === 1) ? 1.1 : 1.3;
-        let finalSpeed = (baseSpeed + (Math.random() * 0.1)) * speedFactor;
+        let speedFactor = (currentLevel === 1) ? 1.1 : 1.35;
+        let finalSpeed = (baseSpeed + (Math.random() * 0.15)) * speedFactor;
         
         const moveInterval = setInterval(() => {
-            if (isGameOver) { clearInterval(moveInterval); bomb.remove(); return; }
+            if (isGameOver || score >= goal) { clearInterval(moveInterval); bomb.remove(); return; }
             bombObj.y += finalSpeed;
             bomb.style.top = bombObj.y + 'px';
 
-            if (bombObj.y > window.innerHeight - 100) { 
+            // [수정사항 1] 오답 폭탄이 마을(화면 하단)까지 내려가서 사라지도록 수정 (기존 0.6 -> 0.85)
+            if (!isCorrect && bombObj.y > containerHeight * 0.85) {
+                if (!bomb.classList.contains('pop-out')) {
+                    bomb.classList.add('pop-out');
+                    setTimeout(() => {
+                        clearInterval(moveInterval);
+                        bomb.remove();
+                        activeBombs = activeBombs.filter(b => b !== bombObj);
+                    }, 400);
+                }
+            }
+
+            // 정답 폭탄이 마을에 닿으면 폭발
+            if (isCorrect && bombObj.y > containerHeight - 110) { 
                 clearInterval(moveInterval);
                 activeBombs = activeBombs.filter(b => b !== bombObj);
-                if (isCorrect) triggerBigExplosion(startX + 50, window.innerHeight - 60, "정답 폭탄을 놓쳤어요!");
-                else bomb.remove();
+                triggerBigExplosion(startX + 50, containerHeight - 60, "정답 폭탄을 놓쳤어요!");
             }
         }, 16);
 
         const handleHit = (e) => {
             e.preventDefault();
-            if (isGameOver) return;
+            if (isGameOver || score >= goal) return;
             if (isCorrect) {
                 if (!bomb.classList.contains('pop-out')) {
                     bomb.classList.add('pop-out');
@@ -310,32 +338,47 @@
     }
 
     function showWinPopup() {
+        isGameOver = true; 
         const screen = document.getElementById('stats-screen');
+        const restartBtn = document.getElementById('restart-btn');
+        
         document.getElementById('stats-title').innerText = "임무 완수! 🎉";
-        document.getElementById('stats-content').innerHTML = `${currentLevel}단계를 완수했습니다!<br><br>우리 마을을 지켜냈어요!`;
+        document.getElementById('stats-content').innerHTML = `${currentLevel}단계를 완수했습니다!<br>우리 마을을 지켜냈어요!`;
         document.getElementById('step-label').innerText = `${currentLevel}단계`;
         document.getElementById('wish-ticket').style.display = 'block';
-        document.getElementById('next-btn').style.display = 'inline-block';
-        document.getElementById('restart-btn').style.display = 'none';
+        
+        // [수정사항 3] 다음 단계 도전 버튼으로 변경
+        restartBtn.innerText = "다음 단계 도전";
+        restartBtn.style.background = "#4caf50";
+        
         screen.style.display = 'flex';
         activeBombs.forEach(b => b.element.remove());
         activeBombs = [];
     }
 
-    function nextLevel() {
-        currentLevel++; score = 0;
-        document.getElementById('stats-screen').style.display = 'none';
-        updateStatus(); spawnLoop();
-    }
-
     function showLosePopup(reason) {
         const screen = document.getElementById('stats-screen');
+        const restartBtn = document.getElementById('restart-btn');
+        
         document.getElementById('stats-title').innerText = "작전 실패... 😭";
         document.getElementById('stats-content').innerText = reason + "\n마을이 파괴되었습니다.";
         document.getElementById('wish-ticket').style.display = 'none';
-        document.getElementById('next-btn').style.display = 'none';
-        document.getElementById('restart-btn').style.display = 'inline-block';
+        
+        restartBtn.innerText = "다시 도전";
+        restartBtn.style.background = "#ffa726";
+        
         screen.style.display = 'flex';
+    }
+
+    // [수정사항 3] 버튼 클릭 핸들러
+    function handleRestart() {
+        const btnText = document.getElementById('restart-btn').innerText;
+        if(btnText === "다음 단계 도전") {
+            currentLevel++; // 단계 상승
+            startGame();
+        } else {
+            location.reload(); // 실패 시 새로고침
+        }
     }
 </script>
 
