@@ -77,18 +77,20 @@
         .shake-active { animation: shake-screen 0.1s infinite; }
         @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(8px, -8px); } }
 
-        /* [수정사항 2] 업그레이드된 소원권 디자인 적용 */
+        /* [수정사항 1] 소원권 디자인 최적화 및 레이아웃 고정 */
         #wish-ticket {
             display: none;
             background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
             color: #fff;
-            padding: 15px;
+            padding: 15px 10px;
             border-radius: 20px;
             border: 4px dashed #fff;
             box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-            margin: 15px 0;
+            margin: 15px auto;
             position: relative;
             animation: shine-wish 1.5s infinite;
+            width: 100%;
+            max-width: 280px;
         }
         #wish-ticket span {
             display: block;
@@ -96,6 +98,7 @@
             font-weight: 900;
             letter-spacing: 1px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            white-space: nowrap; /* 가로 줄 밀림 방지 */
         }
         @keyframes shine-wish {
             0% { transform: scale(1); }
@@ -137,7 +140,7 @@
             
             <div id="wish-ticket">
                 <span>⭐ 축하해! ⭐</span>
-                <span>🎟️ <span id="step-label"></span> 소원권 획득! 🎟️</span>
+                <span>🎟️ 소원권 획득! 🎟️</span>
             </div>
 
             <div style="width: 80px; height: 80px; margin: 10px auto; background: url('abcd.png') no-repeat center/contain;"></div>
@@ -269,7 +272,6 @@
             bombObj.y += finalSpeed;
             bomb.style.top = bombObj.y + 'px';
 
-            // [수정사항 1] 오답 폭탄이 마을(화면 하단)까지 내려가서 사라지도록 수정 (기존 0.6 -> 0.85)
             if (!isCorrect && bombObj.y > containerHeight * 0.85) {
                 if (!bomb.classList.contains('pop-out')) {
                     bomb.classList.add('pop-out');
@@ -281,7 +283,6 @@
                 }
             }
 
-            // 정답 폭탄이 마을에 닿으면 폭발
             if (isCorrect && bombObj.y > containerHeight - 110) { 
                 clearInterval(moveInterval);
                 activeBombs = activeBombs.filter(b => b !== bombObj);
@@ -343,11 +344,9 @@
         const restartBtn = document.getElementById('restart-btn');
         
         document.getElementById('stats-title').innerText = "임무 완수! 🎉";
-        document.getElementById('stats-content').innerHTML = `${currentLevel}단계를 완수했습니다!<br>우리 마을을 지켜냈어요!`;
-        document.getElementById('step-label').innerText = `${currentLevel}단계`;
+        document.getElementById('stats-content').innerHTML = `축하합니다!<br>우리 마을을 성공적으로 지켜냈어요!`;
         document.getElementById('wish-ticket').style.display = 'block';
         
-        // [수정사항 3] 다음 단계 도전 버튼으로 변경
         restartBtn.innerText = "다음 단계 도전";
         restartBtn.style.background = "#4caf50";
         
@@ -370,14 +369,13 @@
         screen.style.display = 'flex';
     }
 
-    // [수정사항 3] 버튼 클릭 핸들러
     function handleRestart() {
         const btnText = document.getElementById('restart-btn').innerText;
         if(btnText === "다음 단계 도전") {
-            currentLevel++; // 단계 상승
+            currentLevel++; 
             startGame();
         } else {
-            location.reload(); // 실패 시 새로고침
+            location.reload(); 
         }
     }
 </script>
