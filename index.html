@@ -24,10 +24,9 @@
             font-weight: bold;
         }
 
-        /* [수정 1] 배경 및 컨테이너 밸런스 조정 */
         #game-container { 
             position: relative; width: 100vw; height: 100vh; max-width: 600px; margin: 0 auto;
-            background: url('sky.png') no-repeat center bottom / cover; /* 아래쪽 기준 정렬 */
+            background: url('sky.png') no-repeat center bottom / cover;
             overflow: hidden; 
         }
 
@@ -43,6 +42,15 @@
             animation: bounce-rabbit 0.8s infinite alternate ease-in-out;
         }
 
+        /* [수정 1] 메인 타이틀 디자인 추가 */
+        .main-title {
+            font-size: 32px; font-weight: 900; color: #FFEB3B;
+            text-shadow: 2px 2px 0px #E65100, 4px 4px 10px rgba(0,0,0,0.5);
+            margin: 10px 0; letter-spacing: -1px;
+            animation: title-glow 1.5s infinite alternate;
+        }
+        @keyframes title-glow { from { transform: scale(1); } to { transform: scale(1.05); text-shadow: 2px 2px 0px #E65100, 0 0 20px #FFEB3B; } }
+
         @keyframes bounce-rabbit { from { transform: translateY(0); } to { transform: translateY(-20px); } }
 
         .instruction { 
@@ -56,7 +64,6 @@
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
         #status-bar { position: absolute; top: 15px; left: 15px; color: white; font-weight: bold; z-index: 1000; background: rgba(0,0,0,0.5); padding: 7px 20px; border-radius: 25px; font-size: 17px; }
 
-        /* [수정 1] 말풍선 짤림 방지 (Max-width 및 여백 조정) */
         .speech-bubble {
             position: absolute; background: white; color: #333;
             padding: 10px 15px; border-radius: 25px; font-size: 18px; font-weight: 900;
@@ -104,12 +111,9 @@
         }
 
         #stats-title { font-size: 32px; color: #FF4081; margin-bottom: 5px; font-weight: 900; text-shadow: 1px 1px 0px #eee; }
-        
-        /* [수정 2] 정답 개수 표시 스타일 */
         #stats-score-info { font-size: 18px; color: #4A90E2; font-weight: bold; margin-bottom: 10px; }
         #stats-content { font-size: 17px; line-height: 1.5; margin-bottom: 20px; color: #555; }
 
-        /* [수정 4] 소원권 팝업 디자인 변경 */
         #wish-ticket {
             display: none;
             background: #FFF9C4;
@@ -153,6 +157,7 @@
 
     <div id="intro-screen" class="overlay">
         <img src="abcd.png" class="animated-char" alt="character">
+        <div class="main-title">아이니의 마을 수호대</div>
         <div class="instruction">
             <strong>작전 개시! 마을을 지켜라!</strong><br>
             20개의 폭탄 중 <b>15개의 정답 폭탄</b>만 제거하세요.<br>
@@ -200,10 +205,10 @@
 
     let currentLevel = 1;
     let score = 0;
-    let totalBombsSpawned = 0; // [수정 3] 생성된 총 폭탄 수
-    let correctSpawnCount = 0; // [수정 3] 생성된 정답 폭탄 수
+    let totalBombsSpawned = 0;
+    let correctSpawnCount = 0;
     const goal = 15;
-    const maxSpawnPerLevel = 20; // [수정 3] 한 단계당 총 20개
+    const maxSpawnPerLevel = 20;
     let activeBombs = [];
     let isGameOver = false;
     let baseSpeed = 0.35;
@@ -211,6 +216,42 @@
 
     let audioCtx;
     let bgmInterval = null;
+
+    /* [수정 3] 정답 제거 효과음 */
+    function playHitSound() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+        g.gain.setValueAtTime(0.1, now);
+        g.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.start(); osc.stop(now + 0.1);
+    }
+
+    /* [수정 4] 폭발 효과음 */
+    function playExplosionSound() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(40, now + 0.4);
+        g.gain.setValueAtTime(0.3, now);
+        g.gain.linearRampToValueAtTime(0, now + 0.4);
+        osc.start(); osc.stop(now + 0.4);
+        // 저음 노이즈 효과 추가
+        const osc2 = audioCtx.createOscillator();
+        osc2.connect(g);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(60, now);
+        osc2.start(); osc2.stop(now + 0.4);
+    }
 
     function playWinSound() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -237,7 +278,7 @@
             const gain = audioCtx.createGain();
             osc.type = 'sawtooth'; 
             osc.frequency.setValueAtTime(freq, startTime);
-            gain.gain.setValueAtTime(0.1, startTime); 
+            gain.gain.setValueAtTime(0.05, startTime); 
             gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(startTime); osc.stop(startTime + duration);
@@ -270,15 +311,11 @@
         const bubble = document.getElementById('village-bubble');
         if (isStart) bubble.innerText = "마을을 지켜줘!";
         else bubble.innerText = cheers[Math.floor(Math.random() * cheers.length)];
-        
         const containerWidth = document.getElementById('game-container').offsetWidth;
         const containerHeight = document.getElementById('game-container').offsetHeight;
-        
-        /* [수정 1] 화면 밖으로 나가지 않게 X좌표 계산 개선 */
         const bubbleWidth = 120; 
         const randomX = Math.max(10, Math.min(containerWidth - bubbleWidth - 10, Math.random() * (containerWidth - bubbleWidth)));
         const randomY = containerHeight - (containerHeight * (0.15 + Math.random() * 0.1));
-        
         bubble.style.left = randomX + 'px';
         bubble.style.top = (randomY - 60) + 'px'; 
         bubble.style.display = 'block';
@@ -303,48 +340,37 @@
 
     function createBomb() {
         if (isGameOver || score >= goal || totalBombsSpawned >= maxSpawnPerLevel) return;
-        
         totalBombsSpawned++;
         const area = document.getElementById('game-area');
         const bomb = document.createElement('div');
         bomb.className = 'bomb';
-        
         let quiz;
         if (currentLevel === 1) quiz = makeQuizData("plus");
         else quiz = makeQuizData("mix");
-
-        /* [수정 3] 20개 중 15개 정답, 5개 오답 로직 */
         let isCorrect;
         if (correctSpawnCount < goal && (maxSpawnPerLevel - totalBombsSpawned < goal - correctSpawnCount)) {
-            isCorrect = true; // 남은 폭탄이 모두 정답이어야 목표를 채울 수 있는 경우
+            isCorrect = true;
         } else if (correctSpawnCount >= goal) {
-            isCorrect = false; // 이미 정답 15개를 다 뿌린 경우
+            isCorrect = false;
         } else {
-            isCorrect = Math.random() > 0.3; // 평소에는 약 70% 확률로 정답 생성
+            isCorrect = Math.random() > 0.3;
         }
-        
         if(isCorrect) correctSpawnCount++;
         let displayAns = isCorrect ? quiz.ans : (quiz.ans + (Math.floor(Math.random() * 5) + 1));
-        
         bomb.innerHTML = `<div class="bomb-text">${quiz.q}<br>= ${displayAns}</div>`;
         const containerWidth = document.getElementById('game-container').offsetWidth;
         const containerHeight = document.getElementById('game-container').offsetHeight;
-        
         let startX = 20 + Math.random() * (containerWidth - 120);
         bomb.style.left = startX + 'px';
         bomb.style.top = '-120px';
         area.appendChild(bomb);
-
         const bombObj = { element: bomb, x: startX, y: -120 };
         activeBombs.push(bombObj);
-
         let finalSpeed = (baseSpeed + (Math.random() * 0.2)) * (1 + (currentLevel * 0.15));
-        
         const moveInterval = setInterval(() => {
             if (isGameOver) { clearInterval(moveInterval); bomb.remove(); return; }
             bombObj.y += finalSpeed;
             bomb.style.top = bombObj.y + 'px';
-
             if (!isCorrect && bombObj.y > containerHeight * 0.85) {
                 if (!bomb.classList.contains('pop-out')) {
                     bomb.classList.add('pop-out');
@@ -366,6 +392,7 @@
             if (isGameOver) return;
             if (isCorrect) {
                 if (!bomb.classList.contains('pop-out')) {
+                    playHitSound(); // [수정 3] 정답 사운드
                     bomb.classList.add('pop-out');
                     score++; updateStatus(); showCheer(); 
                     setTimeout(() => {
@@ -382,7 +409,6 @@
         bomb.addEventListener('mousedown', handleHit);
     }
 
-    // [수정 3] 폭탄이 20개 다 나왔는데 15개를 못 맞춘 경우 체크
     function checkLevelFailure() {
         if (!isGameOver && totalBombsSpawned >= maxSpawnPerLevel && activeBombs.length === 0 && score < goal) {
             showLosePopup("폭탄을 모두 소진했어요!");
@@ -391,6 +417,7 @@
 
     function triggerBigExplosion(x, y, reason) {
         isGameOver = true;
+        playExplosionSound(); // [수정 4] 폭발 사운드
         document.getElementById('game-container').classList.add('shake-active');
         const fire = document.createElement('div');
         fire.className = 'fire-explosion';
@@ -417,7 +444,8 @@
         isGameOver = true; playWinSound();
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
-        document.getElementById('stats-score-info').innerText = `${totalBombsSpawned}개 중 ${score}문제를 맞혔어요!`;
+        /* [수정 2] 15문제 중 표기 고정 */
+        document.getElementById('stats-score-info').innerText = `15문제 중 ${score}문제를 맞혔어요!`;
         
         if (currentLevel >= 4) {
             document.getElementById('stats-title').innerText = "✨ 평화의 수호자 ✨";
@@ -438,13 +466,11 @@
         isGameOver = true;
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
-        
         document.getElementById('stats-title').innerText = "작전 실패... 😭";
-        /* [수정 2] 실패 시 점수 표시 */
-        document.getElementById('stats-score-info').innerText = `${totalBombsSpawned}개 중 ${score}문제를 맞혔어요!`;
+        /* [수정 2] 실패 시에도 15문제 중 표기 고정 */
+        document.getElementById('stats-score-info').innerText = `15문제 중 ${score}문제를 맞혔어요!`;
         document.getElementById('stats-content').innerText = reason + "\n마을이 파괴되었습니다.";
         document.getElementById('wish-ticket').style.display = 'none';
-        
         restartBtn.innerText = "다시 도전";
         restartBtn.style.background = "#ffa726";
         screen.style.display = 'flex';
