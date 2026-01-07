@@ -42,7 +42,6 @@
             animation: bounce-rabbit 0.8s infinite alternate ease-in-out;
         }
 
-        /* [수정 1] 메인 타이틀 디자인 추가 */
         .main-title {
             font-size: 32px; font-weight: 900; color: #FFEB3B;
             text-shadow: 2px 2px 0px #E65100, 4px 4px 10px rgba(0,0,0,0.5);
@@ -123,10 +122,12 @@
             position: relative; overflow: hidden;
         }
 
+        /* [수정 부분] 소원권 상단 "축하해 축하해" 애니메이션 삭제 및 고정 스타일 */
         .ticket-text-top { 
             display: block; font-size: 18px; font-weight: bold; margin-bottom: 8px;
-            animation: slide-in 1s infinite alternate;
+            /* 애니메이션 제거됨 */
         }
+        
         .ticket-text-bottom { 
             display: block; font-size: 22px; font-weight: 900; 
             background: linear-gradient(to right, #D81B60, #FF4081);
@@ -134,7 +135,6 @@
             animation: pulse-glow 1s infinite;
         }
 
-        @keyframes slide-in { from { transform: translateX(-5px); } to { transform: translateX(5px); } }
         @keyframes pulse-glow { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
         .popup-char { width: 90px; height: 90px; margin: 15px auto; background: url('abcd.png') no-repeat center/contain; animation: tada 2s infinite; }
@@ -160,8 +160,8 @@
         <div class="main-title">아이니의 마을 수호대</div>
         <div class="instruction">
             <strong>작전 개시! 마을을 지켜라!</strong><br>
-            20개의 폭탄 중 <b>15개의 정답 폭탄</b>만 제거하세요.<br>
-            오답을 누르면 <b>마을이 폭발</b>합니다!
+            <b>정답 폭탄</b>만 터치해서 제거하세요.<br>
+            놓치거나 오답을 누르면 <b>마을이 폭발</b>합니다!
         </div>
         <button class="btn" onclick="startGame()">작전 시작</button>
     </div>
@@ -217,7 +217,6 @@
     let audioCtx;
     let bgmInterval = null;
 
-    /* [수정 3] 정답 제거 효과음 */
     function playHitSound() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const now = audioCtx.currentTime;
@@ -232,7 +231,6 @@
         osc.start(); osc.stop(now + 0.1);
     }
 
-    /* [수정 4] 폭발 효과음 */
     function playExplosionSound() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const now = audioCtx.currentTime;
@@ -245,7 +243,6 @@
         g.gain.setValueAtTime(0.3, now);
         g.gain.linearRampToValueAtTime(0, now + 0.4);
         osc.start(); osc.stop(now + 0.4);
-        // 저음 노이즈 효과 추가
         const osc2 = audioCtx.createOscillator();
         osc2.connect(g);
         osc2.type = 'sine';
@@ -392,7 +389,7 @@
             if (isGameOver) return;
             if (isCorrect) {
                 if (!bomb.classList.contains('pop-out')) {
-                    playHitSound(); // [수정 3] 정답 사운드
+                    playHitSound();
                     bomb.classList.add('pop-out');
                     score++; updateStatus(); showCheer(); 
                     setTimeout(() => {
@@ -417,7 +414,7 @@
 
     function triggerBigExplosion(x, y, reason) {
         isGameOver = true;
-        playExplosionSound(); // [수정 4] 폭발 사운드
+        playExplosionSound();
         document.getElementById('game-container').classList.add('shake-active');
         const fire = document.createElement('div');
         fire.className = 'fire-explosion';
@@ -444,7 +441,6 @@
         isGameOver = true; playWinSound();
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
-        /* [수정 2] 15문제 중 표기 고정 */
         document.getElementById('stats-score-info').innerText = `15문제 중 ${score}문제를 맞혔어요!`;
         
         if (currentLevel >= 4) {
@@ -467,7 +463,6 @@
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
         document.getElementById('stats-title').innerText = "작전 실패... 😭";
-        /* [수정 2] 실패 시에도 15문제 중 표기 고정 */
         document.getElementById('stats-score-info').innerText = `15문제 중 ${score}문제를 맞혔어요!`;
         document.getElementById('stats-content').innerText = reason + "\n마을이 파괴되었습니다.";
         document.getElementById('wish-ticket').style.display = 'none';
