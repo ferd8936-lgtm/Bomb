@@ -17,7 +17,6 @@
             width: 100%; height: 100%;
         }
 
-        /* 크롬 유도 바 스타일 추가 */
         #chrome-prompt {
             position: absolute; top: 0; left: 0; width: 100%; height: 40px;
             background: #4285F4; color: white; display: none; align-items: center;
@@ -35,9 +34,10 @@
             background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px;
         }
         
+        /* [수정 1] 캐릭터 사이즈 20% 축소 (120px -> 96px) */
         .animated-char {
-            width: 120px; height: auto;
-            margin-bottom: 25px;
+            width: 96px; height: auto;
+            margin-bottom: 12.5px; /* [수정 1] 간격 50% 축소 (25px -> 12.5px) */
             filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
             animation: bounce-rabbit 0.8s infinite alternate ease-in-out;
         }
@@ -46,7 +46,8 @@
 
         .instruction { 
             background: white; color: #333; padding: 25px; border-radius: 20px; 
-            margin: 25px 0; line-height: 1.7; font-size: 19px; text-align: center; width: 90%;
+            margin: 12.5px 0; /* [수정 1] 간격 50% 축소 */
+            line-height: 1.7; font-size: 19px; text-align: center; width: 90%;
             word-break: keep-all; max-height: 35vh; overflow-y: auto;
         }
         .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; }
@@ -59,6 +60,7 @@
             padding: 10px 20px; border-radius: 25px; font-size: 20px; font-weight: 900;
             white-space: nowrap; border: 4px solid #2e7d32; display: none; z-index: 160;
             box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            opacity: 0; transition: opacity 0.3s; /* [수정 4] 초기 표시 방지용 투명도 */
         }
         .speech-bubble::after {
             content: ''; position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
@@ -85,7 +87,6 @@
         .shake-active { animation: shake-screen 0.1s infinite; }
         @keyframes shake-screen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-8px, 8px); } 75% { transform: translate(8px, -8px); } }
 
-        /* [수정 1] 새로운 소원권 팝업 디자인 */
         .result-pop {
             background: #fff; padding: 30px 20px; border-radius: 40px; text-align: center; 
             color: #333; width: 90%; box-shadow: 0 15px 35px rgba(0,0,0,0.4);
@@ -142,9 +143,9 @@
     <div id="intro-screen" class="overlay">
         <img src="abcd.png" class="animated-char" alt="character">
         <div class="instruction">
-            <strong>작전 개시! 마을을 지켜라!</strong><br><br>
-            1. <b>정답</b> 폭탄을 15개 제거할 때마다 소원권을 획득할 수 있습니다.<br>
-            2. 정답을 놓치거나 <b>오답</b>을 누르면 마을이 폭발하니 주의하세요!
+            <strong>작전 개시! 마을을 지켜라!</strong><br>
+            <b>정답 폭탄</b>을 터치해서 제거하세요.<br>
+            놓치거나 오답을 누르면 <b>마을이 폭발</b>합니다!
         </div>
         <button class="btn" onclick="startGame()">작전 시작</button>
     </div>
@@ -173,7 +174,6 @@
 </div>
 
 <script>
-    /* 크롬 체크 및 전환 로직 추가 */
     window.onload = function() {
         const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
         if (!isChrome) {
@@ -197,6 +197,27 @@
     let audioCtx;
     let bgmInterval = null;
 
+    /* [수정 3] 귀여운 축하 효과음 함수 */
+    function playWinSound() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        
+        function beep(freq, time, duration) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+            g.gain.setValueAtTime(0.2, time);
+            g.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+            osc.start(time); osc.stop(time + duration);
+        }
+        beep(523.25, now, 0.1);    // 도
+        beep(659.25, now + 0.1, 0.1); // 미
+        beep(783.99, now + 0.2, 0.1); // 솔
+        beep(1046.50, now + 0.3, 0.4); // 높은 도
+    }
+
     function playBGM() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -207,7 +228,7 @@
             const gain = audioCtx.createGain();
             osc.type = 'sawtooth'; 
             osc.frequency.setValueAtTime(freq, startTime);
-            gain.gain.setValueAtTime(0.3, startTime); 
+            gain.gain.setValueAtTime(0.1, startTime); 
             gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(startTime); osc.stop(startTime + duration);
@@ -248,7 +269,9 @@
         bubble.style.left = randomX + 'px';
         bubble.style.top = (randomY - 60) + 'px'; 
         bubble.style.display = 'block';
-        bubble.style.opacity = '1';
+        
+        /* [수정 4] 텍스트가 갑자기 보이지 않게 처리 */
+        setTimeout(() => { bubble.style.opacity = '1'; }, 50);
         
         setTimeout(() => { 
             bubble.style.opacity = '0';
@@ -278,7 +301,8 @@
         if (currentLevel === 1) quiz = makeQuizData("plus");
         else quiz = makeQuizData("mix");
 
-        const isCorrect = Math.random() > 0.4;
+        /* [수정 2] 폭탄 2개 중 1개는 정답 (확률 50%) */
+        const isCorrect = Math.random() > 0.5;
         let displayAns = isCorrect ? quiz.ans : (quiz.ans + (Math.floor(Math.random() * 9) + 1));
         
         bomb.innerHTML = `<div class="bomb-text">${quiz.q}<br>= ${displayAns}</div>`;
@@ -375,16 +399,24 @@
 
     function showWinPopup() {
         isGameOver = true; 
+        playWinSound(); /* [수정 3] 축하 효과음 */
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
         
-        document.getElementById('stats-title').innerText = "임무 완수! 🎉";
-        document.getElementById('stats-content').innerHTML = `우리 마을을 성공적으로 지켜냈어요!`;
+        /* [수정 5] 4단계 완료 처리 */
+        if (currentLevel >= 4) {
+            document.getElementById('stats-title').innerText = "✨ 평화의 수호자 ✨";
+            document.getElementById('stats-content').innerHTML = `축하합니다! 모든 단계를 완료하여<br>마을에 영원한 평화가 찾아왔어요!`;
+            restartBtn.innerText = "처음으로 돌아가기";
+            restartBtn.style.background = "#4CAF50";
+        } else {
+            document.getElementById('stats-title').innerText = "임무 완수! 🎉";
+            document.getElementById('stats-content').innerHTML = `${currentLevel}단계를 성공적으로 마쳤어요!`;
+            restartBtn.innerText = "다음 단계 도전";
+            restartBtn.style.background = "#FF9800";
+        }
+        
         document.getElementById('wish-ticket').style.display = 'block';
-        
-        restartBtn.innerText = "다음 단계 도전";
-        restartBtn.style.background = "#FF9800";
-        
         screen.style.display = 'flex';
         activeBombs.forEach(b => b.element.remove());
         activeBombs = [];
@@ -410,6 +442,7 @@
             currentLevel++; 
             startGame();
         } else {
+            /* [수정 5] "처음으로 돌아가기" 또는 "다시 도전" 시 초기화 */
             location.reload(); 
         }
     }
