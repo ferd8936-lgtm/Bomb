@@ -17,6 +17,14 @@
             width: 100%; height: 100%;
         }
 
+        /* 크롬 유도 바 스타일 추가 */
+        #chrome-prompt {
+            position: absolute; top: 0; left: 0; width: 100%; height: 40px;
+            background: #4285F4; color: white; display: none; align-items: center;
+            justify-content: center; font-size: 14px; z-index: 9999; cursor: pointer;
+            font-weight: bold;
+        }
+
         #game-container { 
             position: relative; width: 100vw; height: 100vh; max-width: 600px; margin: 0 auto;
             background: url('sky.png') no-repeat center center / cover; overflow: hidden; 
@@ -126,6 +134,8 @@
 </head>
 <body>
 
+<div id="chrome-prompt" onclick="openInChrome()">이 게임은 Chrome에 최적화되었습니다. [클릭하여 이동]</div>
+
 <div id="game-container">
     <div id="status-bar" style="display:none;">단계: <span id="cur-step">1</span> | 제거: <span id="cur-score">0</span>/15</div>
 
@@ -163,6 +173,19 @@
 </div>
 
 <script>
+    /* 크롬 체크 및 전환 로직 추가 */
+    window.onload = function() {
+        const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        if (!isChrome) {
+            document.getElementById('chrome-prompt').style.display = 'flex';
+        }
+    };
+
+    function openInChrome() {
+        const url = window.location.href.replace(/^https?:\/\//, '');
+        window.location.href = "googlechrome://" + url;
+    }
+
     let currentLevel = 1;
     let score = 0;
     const goal = 15;
@@ -192,7 +215,8 @@
 
         bgmInterval = setInterval(() => {
             if (isGameOver) { clearInterval(bgmInterval); bgmInterval = null; return; }
-            createNote(82.41, audioCtx.currentTime, 0.6); 
+            const now = audioCtx.currentTime;
+            createNote(82.41, now, 0.6); 
             setTimeout(() => { if (!isGameOver) createNote(87.31, audioCtx.currentTime, 0.6); }, 250);
         }, 500);
     }
@@ -393,4 +417,3 @@
 
 </body>
 </html>
-
