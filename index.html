@@ -43,22 +43,33 @@
         }
 
         .main-title {
-            font-size: 32px; font-weight: 900; color: #FFEB3B;
+            font-size: 30.72px; font-weight: 900; color: #FFEB3B;
             text-shadow: 2px 2px 0px #E65100, 4px 4px 10px rgba(0,0,0,0.5);
             margin: 10px 0; letter-spacing: -1px;
-            animation: title-glow 1.5s infinite alternate;
+            animation: none; 
         }
-        @keyframes title-glow { from { transform: scale(1); } to { transform: scale(1.05); text-shadow: 2px 2px 0px #E65100, 0 0 20px #FFEB3B; } }
 
         @keyframes bounce-rabbit { from { transform: translateY(0); } to { transform: translateY(-20px); } }
 
         .instruction { 
             background: white; color: #333; padding: 25px; border-radius: 20px; 
-            margin: 12.5px 0;
-            line-height: 1.7; font-size: 19px; text-align: center; width: 90%;
+            margin: 10px 0;
+            line-height: 1.6; font-size: 20px; text-align: center; width: 85%;
             word-break: keep-all; max-height: 35vh; overflow-y: auto;
         }
-        .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; }
+
+        /* [수정] 안내 멘트 박스와의 간격 30% 축소 (30px -> 21px) */
+        .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; margin-top: 21px; }
+
+        .step-container { display: flex; gap: 8px; margin-top: 40px; }
+
+        /* [수정] 1~4단계 버튼 크기 20% 확대 (padding 및 font-size 조정) */
+        .btn-step {
+            background: transparent; border: 1.5px solid #fff; color: #fff;
+            padding: 8.4px 15.12px; border-radius: 10px; cursor: pointer;
+            font-size: 0.792rem; font-weight: bold; transition: 0.2s;
+        }
+        .btn-step:active { background: rgba(255,255,255,0.2); }
 
         #game-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
         #status-bar { position: absolute; top: 15px; left: 15px; color: white; font-weight: bold; z-index: 1000; background: rgba(0,0,0,0.5); padding: 7px 20px; border-radius: 25px; font-size: 17px; }
@@ -122,10 +133,8 @@
             position: relative; overflow: hidden;
         }
 
-        /* [수정 부분] 소원권 상단 "축하해 축하해" 애니메이션 삭제 및 고정 스타일 */
         .ticket-text-top { 
             display: block; font-size: 18px; font-weight: bold; margin-bottom: 8px;
-            /* 애니메이션 제거됨 */
         }
         
         .ticket-text-bottom { 
@@ -153,17 +162,23 @@
 <div id="chrome-prompt" onclick="openInChrome()">이 게임은 Chrome에 최적화되었습니다. [클릭하여 이동]</div>
 
 <div id="game-container">
-    <div id="status-bar" style="display:none;">단계: <span id="cur-step">1</span> | 제거: <span id="cur-score">0</span>/15</div>
+    <div id="status-bar" style="display:none;"><span id="step-display-name">작전</span> | 제거: <span id="cur-score">0</span>/10</div>
 
     <div id="intro-screen" class="overlay">
         <img src="abcd.png" class="animated-char" alt="character">
         <div class="main-title">아이니의 마을 수호대</div>
         <div class="instruction">
             <strong>작전 개시! 마을을 지켜라!</strong><br>
-            <b>정답 폭탄</b>만 터치해서 제거하세요.<br>
-            놓치거나 오답을 누르면 <b>마을이 폭발</b>합니다!
+            <b>(정답 폭탄</b>만 터치 → 제거)<br>
+            정답을 놓치거나 오답을 누르면 <b>마을이 폭발</b>합니다!
         </div>
-        <button class="btn" onclick="startGame()">작전 시작</button>
+        <button class="btn" onclick="startGame('all')">작전 시작</button>
+        <div class="step-container">
+            <button class="btn-step" onclick="startGame(1)">1단계</button>
+            <button class="btn-step" onclick="startGame(2)">2단계</button>
+            <button class="btn-step" onclick="startGame(3)">3단계</button>
+            <button class="btn-step" onclick="startGame(4)">4단계</button>
+        </div>
     </div>
 
     <div id="game-area" style="display:none;">
@@ -193,7 +208,8 @@
 <script>
     window.onload = function() {
         const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-        if (!isChrome) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (!isChrome && !isIOS) {
             document.getElementById('chrome-prompt').style.display = 'flex';
         }
     };
@@ -204,11 +220,14 @@
     }
 
     let currentLevel = 1;
+    let gameMode = 'all'; 
     let score = 0;
     let totalBombsSpawned = 0;
     let correctSpawnCount = 0;
-    const goal = 15;
-    const maxSpawnPerLevel = 20;
+    let lastBombWasWrong = false; 
+    const goal = 10; 
+    const maxWrongCount = 3; 
+    let wrongSpawnCount = 0;
     let activeBombs = [];
     let isGameOver = false;
     let baseSpeed = 0.35;
@@ -288,11 +307,21 @@
         }, 500);
     }
 
-    function startGame() {
+    function startGame(mode) {
+        if (mode === 'all') {
+            gameMode = 'all';
+            currentLevel = 1;
+        } else if (typeof mode === 'number') {
+            gameMode = 'step';
+            currentLevel = mode;
+        }
+        
         isGameOver = false;
         score = 0;
         totalBombsSpawned = 0;
         correctSpawnCount = 0;
+        wrongSpawnCount = 0;
+        lastBombWasWrong = false;
         activeBombs = [];
         playBGM();
         document.getElementById('intro-screen').style.display = 'none';
@@ -324,37 +353,46 @@
     }
 
     function updateStatus() {
-        document.getElementById('cur-step').innerText = currentLevel;
+        const levelName = gameMode === 'all' ? `작전 ${currentLevel}` : `${currentLevel}단계`;
+        document.getElementById('step-display-name').innerText = levelName;
         document.getElementById('cur-score').innerText = score;
     }
 
     function spawnLoop() {
-        if (isGameOver || score >= goal || totalBombsSpawned >= maxSpawnPerLevel) return;
+        if (isGameOver || score >= goal) return;
         let canSpawn = activeBombs.length === 0 || activeBombs[activeBombs.length - 1].y > 150;
         if (canSpawn && activeBombs.length < 3) createBomb();
-        setTimeout(spawnLoop, 600);
+        
+        setTimeout(spawnLoop, 179.5);
     }
 
     function createBomb() {
-        if (isGameOver || score >= goal || totalBombsSpawned >= maxSpawnPerLevel) return;
+        if (isGameOver || score >= goal) return;
         totalBombsSpawned++;
         const area = document.getElementById('game-area');
         const bomb = document.createElement('div');
         bomb.className = 'bomb';
+        
         let quiz;
-        if (currentLevel === 1) quiz = makeQuizData("plus");
-        else quiz = makeQuizData("mix");
+        if (currentLevel === 1) quiz = makeQuizData("plus", 10, false);
+        else if (currentLevel === 2) quiz = makeQuizData("plus", 30, false);
+        else if (currentLevel === 3) quiz = makeQuizData("mix", 50, true); 
+        else quiz = makeQuizData("mix", 80, true); 
+
         let isCorrect;
-        if (correctSpawnCount < goal && (maxSpawnPerLevel - totalBombsSpawned < goal - correctSpawnCount)) {
-            isCorrect = true;
-        } else if (correctSpawnCount >= goal) {
+        if (wrongSpawnCount < maxWrongCount && !lastBombWasWrong && Math.random() < 0.3) {
             isCorrect = false;
+            wrongSpawnCount++;
+            lastBombWasWrong = true;
         } else {
-            isCorrect = Math.random() > 0.3;
+            isCorrect = true;
+            correctSpawnCount++;
+            lastBombWasWrong = false;
         }
-        if(isCorrect) correctSpawnCount++;
+
         let displayAns = isCorrect ? quiz.ans : (quiz.ans + (Math.floor(Math.random() * 5) + 1));
         bomb.innerHTML = `<div class="bomb-text">${quiz.q}<br>= ${displayAns}</div>`;
+        
         const containerWidth = document.getElementById('game-container').offsetWidth;
         const containerHeight = document.getElementById('game-container').offsetHeight;
         let startX = 20 + Math.random() * (containerWidth - 120);
@@ -363,18 +401,24 @@
         area.appendChild(bomb);
         const bombObj = { element: bomb, x: startX, y: -120 };
         activeBombs.push(bombObj);
-        let finalSpeed = (baseSpeed + (Math.random() * 0.2)) * (1 + (currentLevel * 0.15));
+        
+        let levelSpeedFactor = 1;
+        if (currentLevel === 3) levelSpeedFactor = 1.15;
+        else if (currentLevel === 4) levelSpeedFactor = 1.3;
+
+        let finalSpeed = (baseSpeed + (Math.random() * 0.2)) * (1 + (currentLevel * 0.15)) * levelSpeedFactor;
+        
         const moveInterval = setInterval(() => {
             if (isGameOver) { clearInterval(moveInterval); bomb.remove(); return; }
             bombObj.y += finalSpeed;
             bomb.style.top = bombObj.y + 'px';
+            
             if (!isCorrect && bombObj.y > containerHeight * 0.85) {
                 if (!bomb.classList.contains('pop-out')) {
                     bomb.classList.add('pop-out');
                     setTimeout(() => {
                         clearInterval(moveInterval); bomb.remove();
                         activeBombs = activeBombs.filter(b => b !== bombObj);
-                        checkLevelFailure();
                     }, 400);
                 }
             }
@@ -406,12 +450,6 @@
         bomb.addEventListener('mousedown', handleHit);
     }
 
-    function checkLevelFailure() {
-        if (!isGameOver && totalBombsSpawned >= maxSpawnPerLevel && activeBombs.length === 0 && score < goal) {
-            showLosePopup("폭탄을 모두 소진했어요!");
-        }
-    }
-
     function triggerBigExplosion(x, y, reason) {
         isGameOver = true;
         playExplosionSound();
@@ -426,13 +464,20 @@
         }, 1200);
     }
 
-    function makeQuizData(type) {
+    function makeQuizData(type, range, doubleDigitsOnly) {
         let a, b;
+        const minVal = doubleDigitsOnly ? 10 : 5;
         if (type === "plus" || (type === "mix" && Math.random() > 0.5)) {
-            do { a = Math.floor(Math.random() * 40) + 10; b = Math.floor(Math.random() * 40) + 10; } while (a + b >= 100);
+            do { 
+                a = Math.floor(Math.random() * range) + minVal; 
+                b = Math.floor(Math.random() * range) + minVal; 
+            } while (a + b >= 100);
             return { q: `${a}+${b}`, ans: a + b };
         } else {
-            a = Math.floor(Math.random() * 80) + 20; b = Math.floor(Math.random() * (a - 10)) + 10;
+            do {
+                a = Math.floor(Math.random() * range) + (minVal + 10); 
+                b = Math.floor(Math.random() * (a - minVal)) + minVal;
+            } while (doubleDigitsOnly && (a < 10 || b < 10));
             return { q: `${a}-${b}`, ans: a - b };
         }
     }
@@ -441,16 +486,16 @@
         isGameOver = true; playWinSound();
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
-        document.getElementById('stats-score-info').innerText = `15문제 중 ${score}문제를 맞혔어요!`;
+        document.getElementById('stats-score-info').innerText = `${goal}문제를 모두 제거했습니다!`;
         
-        if (currentLevel >= 4) {
-            document.getElementById('stats-title').innerText = "✨ 평화의 수호자 ✨";
-            document.getElementById('stats-content').innerHTML = `마을에 평화가 찾아왔어요!`;
-            restartBtn.innerText = "처음으로 돌아가기";
-        } else {
+        if (currentLevel < 4) {
             document.getElementById('stats-title').innerText = "임무 완수! 🎉";
             document.getElementById('stats-content').innerHTML = `${currentLevel}단계를 통과했습니다!`;
             restartBtn.innerText = "다음 단계 도전";
+        } else {
+            document.getElementById('stats-title').innerText = "✨ 평화의 수호자 ✨";
+            document.getElementById('stats-content').innerHTML = `우리 마을을 지켜주셔서 감사합니다!`;
+            restartBtn.innerText = "처음으로 돌아가기";
         }
         document.getElementById('wish-ticket').style.display = 'block';
         screen.style.display = 'flex';
@@ -462,18 +507,20 @@
         isGameOver = true;
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
-        document.getElementById('stats-title').innerText = "작전 실패... 😭";
-        document.getElementById('stats-score-info').innerText = `15문제 중 ${score}문제를 맞혔어요!`;
+        document.getElementById('stats-score-info').innerText = `${goal}문제 중 ${score}문제를 제거했어요.`;
         document.getElementById('stats-content').innerText = reason + "\n마을이 파괴되었습니다.";
         document.getElementById('wish-ticket').style.display = 'none';
-        restartBtn.innerText = "다시 도전";
+        
+        restartBtn.innerText = "다시 도전하기";
         restartBtn.style.background = "#ffa726";
         screen.style.display = 'flex';
     }
 
     function handleRestart() {
-        if (document.getElementById('restart-btn').innerText === "다음 단계 도전") {
-            currentLevel++; startGame();
+        const btnText = document.getElementById('restart-btn').innerText;
+        if (btnText === "다음 단계 도전") {
+            currentLevel++; 
+            startGame(gameMode === 'all' ? 'all' : currentLevel);
         } else {
             location.reload(); 
         }
