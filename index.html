@@ -51,23 +51,24 @@
 
         @keyframes bounce-rabbit { from { transform: translateY(0); } to { transform: translateY(-20px); } }
 
+        /* [수정] 안내 멘트 글자 크기 10% 축소 (20px -> 18px) */
         .instruction { 
             background: white; color: #333; padding: 25px; border-radius: 20px; 
             margin: 10px 0;
-            line-height: 1.6; font-size: 20px; text-align: center; width: 85%;
+            line-height: 1.6; font-size: 18px; text-align: center; width: 85%;
             word-break: keep-all; max-height: 35vh; overflow-y: auto;
         }
 
-        /* [수정] 안내 멘트 박스와의 간격 30% 축소 (30px -> 21px) */
-        .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; margin-top: 21px; }
+        /* [수정] 박스와 버튼 사이 간격 50% 축소 (21px -> 10.5px) */
+        .btn { padding: 15px 40px; background: #4caf50; color: white; border: none; border-radius: 35px; font-size: 21px; font-weight: bold; cursor: pointer; margin-top: 10.5px; }
 
         .step-container { display: flex; gap: 8px; margin-top: 40px; }
 
-        /* [수정] 1~4단계 버튼 크기 20% 확대 (padding 및 font-size 조정) */
+        /* [수정] 1~4단계 버튼 크기 및 글자 10% 확대 */
         .btn-step {
             background: transparent; border: 1.5px solid #fff; color: #fff;
-            padding: 8.4px 15.12px; border-radius: 10px; cursor: pointer;
-            font-size: 0.792rem; font-weight: bold; transition: 0.2s;
+            padding: 9.24px 16.63px; border-radius: 10px; cursor: pointer;
+            font-size: 0.871rem; font-weight: bold; transition: 0.2s;
         }
         .btn-step:active { background: rgba(255,255,255,0.2); }
 
@@ -507,6 +508,7 @@
         isGameOver = true;
         const screen = document.getElementById('stats-screen');
         const restartBtn = document.getElementById('restart-btn');
+        document.getElementById('stats-title').innerText = "작전 실패... 😭";
         document.getElementById('stats-score-info').innerText = `${goal}문제 중 ${score}문제를 제거했어요.`;
         document.getElementById('stats-content').innerText = reason + "\n마을이 파괴되었습니다.";
         document.getElementById('wish-ticket').style.display = 'none';
